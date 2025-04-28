@@ -1,0 +1,220 @@
+
+1. Provide a SQL script that initializes the database for the Pet Adoption Platform ”PetPals”.
+
+create database petpals;
+
+use petpals;
+
+2. Create tables for pets, shelters, donations, adoption events, and participants. 
+
+create table if not exists shelters (
+    shelterid int primary key,
+    name varchar(30) not null,
+    location varchar(50) not null
+);
+
+create table if not exists pets (
+    petid int primary key,
+    name varchar(20) not null,
+    age int not null,
+    breed varchar(30) not null,
+    type varchar(30) not null,
+    availableforadoption bit not null,
+    shelterid int,
+    foreign key (shelterid) references shelters(shelterid)
+        on delete set null
+        on update cascade
+);
+
+create table if not exists adoptionevents (
+    eventid int primary key,
+    eventname varchar(255) not null,
+    eventdate datetime not null,
+    location varchar(255) not null
+);
+
+create table if not exists participants (
+    participantid int primary key,
+    participantname varchar(50) not null,
+    participancetype varchar(50) not null,
+    eventid int,
+    foreign key (eventid) references adoptionevents(eventid)
+        on delete cascade
+        on update cascade
+);
+
+create table if not exists donations (
+    donationid int primary key,
+    donorname varchar(30) not null,
+    donationtype varchar(50) not null,
+    donationamount decimal(10, 2) not null,
+    donationitem varchar(50) not null,
+    donationdate datetime not null,
+    shelterid int,
+    participantid int,
+    foreign key (shelterid) references shelters(shelterid)
+        on delete cascade
+        on update cascade,
+    foreign key (participantid) references participants(participantid)
+        on delete set null
+        on update cascade
+);
+
+3. Define appropriate primary keys, foreign keys, and constraints. 
+
+I defined appropriate primary keys for uniqueness, foreign keys for relationship integrity, and constraints such as not null, check conditions to enforce valid data input in all tables.
+
+4. Ensure the script handles potential errors, such as if the database or tables already exist. 
+
+The script uses create table if not exists for each table to safely handle cases where a table might already exist. This avoids errors during execution and ensures smooth database initialization even if the script is run multiple times
+
+5. Write an SQL query that retrieves a list of available pets (those marked as available for adoption) 
+from the "Pets" table. Include the pet's name, age, breed, and type in the result set. Ensure that 
+the query filters out pets that are not available for adoption. 
+
+select name, age, breed, type
+from pets
+where availableforadoption = 1;
+
+6. Write an SQL query that retrieves the names of participants (shelters and adopters) registered 
+for a specific adoption event. Use a parameter to specify the event ID. Ensure that the query 
+joins the necessary tables to retrieve the participant names and types. 
+
+select participantname, participancetype
+from participants
+where eventid = 1;
+
+
+
+
+7. Create a stored procedure in SQL that allows a shelter to update its information (name and 
+location) in the "Shelters" table. Use parameters to pass the shelter ID and the new information.Ensure that the procedure performs the update and handles potential errors, such as an invalid shelter ID.
+
+DELIMITER $$
+CREATE PROCEDURE update_shelter_info (IN shelter_id INT, IN new_name VARCHAR(30), IN new_location VARCHAR(50))
+BEGIN
+    UPDATE shelters
+    SET name = new_name, location = new_location
+    WHERE shelterid = shelter_id;
+END $$
+DELIMITER ;
+ 
+8. Write an SQL query that calculates and retrieves the total donation amount for each shelter (by 
+shelter name) from the "Donations" table. The result should include the shelter name and the 
+total donation amount. Ensure that the query handles cases where a shelter has received no 
+donations. 
+
+select s.name, SUM(d.donationamount)
+from donations d
+join shelters s ON d.shelterid = s.shelterid
+group by s.name;
+
+
+9. Write an SQL query that retrieves the names of pets from the "Pets" table that do not have an 
+owner (i.e., where "OwnerID" is null). Include the pet's name, age, breed, and type in the result 
+set. 
+
+select name, age, breed, type
+from pets
+where availableforadoption=1;
+
+10. Write an SQL query that retrieves the total donation amount for each month and year (e.g., 
+January 2023) from the "Donations" table. The result should include the month-year and the 
+corresponding total donation amount. Ensure that the query handles cases where no donations 
+were made in a specific month-year. 
+
+select 
+    year(donationdate),
+    month(donationdate),
+    monthname(donationdate),
+    sum(donationamount)
+from donations
+group by year(donationdate), month(donationdate), monthname(donationdate)
+order by year(donationdate) desc, month(donationdate) desc;
+
+11. Retrieve a list of distinct breeds for all pets that are either aged between 1 and 3 years or older 
+than 5 years. 
+
+select distinct breed
+from pets
+where (age between 1 and 3) or (age > 5);
+
+12. Retrieve a list of pets and their respective shelters where the pets are currently available for 
+adoption. 
+
+select p.name, s.name
+from pets p
+join shelters s on p.shelterid = s.shelterid
+where p.availableforadoption = 1;
+
+
+
+13. Find the total number of participants in events organized by shelters located in specific city. 
+Example: City=Chennai 
+
+select count(p.participantid)
+from participants p
+join adoptionevents ae on p.eventid = ae.eventid
+where ae.location like '%Chennai%';
+
+14. Retrieve a list of unique breeds for pets with ages between 1 and 5 years. 
+
+select distinct breed
+from pets
+where age between 1 and 5;
+
+15. Find the pets that have not been adopted by selecting their information from the 'Pet' table. 
+
+select * 
+from pets
+where availableforadoption = 1;
+
+16. Retrieve the names of all adopted pets along with the adopter's name from the 'Adoption' and 
+'User' tables. 
+
+here actually for user, I used table participant but for adopter's name i have created a new table.
+
+create table if not exists adoption (
+    adoptionid int primary key,
+    petid int,
+    participantid int,
+    adoptiondate datetime,
+    foreign key (petid) references pets(petid),
+    foreign key (participantid) references participants(participantid)
+);
+
+select p.name,u.participantname
+from pets p
+join adoption a on p.petid = a.petid
+join participants u on a.participantid = u.participantid;
+
+17. Retrieve a list of all shelters along with the count of pets currently available for adoption in each 
+shelter. 
+
+select s.name,count(p.petid)
+from shelters s
+left join pets p on s.shelterid = p.shelterid and p.availableforadoption = 1
+group by s.name;
+
+18. Find pairs of pets from the same shelter that have the same breed. 
+
+select p1.name, p2.name, p1.shelterid, p1.breed
+from pets p1
+join pets p2 on p1.shelterid = p2.shelterid and p1.breed = p2.breed and p1.petid < p2.petid;
+
+19. List all possible combinations of shelters and adoption events. 
+
+select s.name, e.eventname
+from shelters s
+cross join adoptionevents e;
+
+20. Determine the shelter that has the highest number of adopted pets.
+
+select s.name, count(p.petid) as adopted_pet_count
+from shelters s
+join pets p on s.shelterid = p.shelterid
+where p.availableforadoption = 0
+group by s.name
+order by adopted_pet_count desc
+limit 1;
+
