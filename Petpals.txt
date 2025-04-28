@@ -186,7 +186,8 @@ create table if not exists adoption (
 select p.name,u.participantname
 from pets p
 join adoption a on p.petid = a.petid
-join participants u on a.participantid = u.participantid;
+join participants u on a.participantid = u.participantid
+where u.participancetype='Adopter';
 
 17. Retrieve a list of all shelters along with the count of pets currently available for adoption in each 
 shelter. 
